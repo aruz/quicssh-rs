@@ -22,19 +22,38 @@ pub struct Opt {
     /// Client address
     #[clap(long = "bind", short = 'b')]
     bind_addr: Option<SocketAddr>,
+    /// MTU upper bound: numeric value (e.g., 1200) or "safety" for RFC-compliant 1200 bytes
+    #[clap(long = "mtu-upper-bound")]
+    mtu_upper_bound: Option<String>,
 }
 
 /// Enables MTUD if supported by the operating system
-#[cfg(not(any(windows, os = "linux")))]
-pub fn enable_mtud_if_supported() -> quinn::TransportConfig {
+///
+/// # Arguments
+/// * `upper_bound` - Optional MTU upper bound in bytes. None uses Quinn's default (1452).
+#[cfg(not(any(windows, target_os = "linux")))]
+fn enable_mtud_if_supported(_upper_bound: Option<u16>) -> quinn::TransportConfig {
     quinn::TransportConfig::default()
 }
 
 /// Enables MTUD if supported by the operating system
-#[cfg(any(windows, os = "linux"))]
-pub fn enable_mtud_if_supported() -> quinn::TransportConfig {
+///
+/// # Arguments
+/// * `upper_bound` - Optional MTU upper bound in bytes. None uses Quinn's default (1452).
+#[cfg(any(windows, target_os = "linux"))]
+fn enable_mtud_if_supported(upper_bound: Option<u16>) -> quinn::TransportConfig {
     let mut transport_config = quinn::TransportConfig::default();
-    transport_config.mtu_discovery_config(Some(quinn::MtuDiscoveryConfig::default()));
+
+    if let Some(mtu) = upper_bound {
+        // Set MTU discovery upper bound per RFC 9000 Section 14.1
+        // and RFC 8899 Section 5.1.2 (recommended BASE_PLPMTU for UDP).
+        // 1200 bytes ensures compatibility with IPv6 minimum MTU (1280 per RFC 8200).
+        let mut mtu_config = quinn::MtuDiscoveryConfig::default();
+        mtu_config.upper_bound(mtu);
+        transport_config.mtu_discovery_config(Some(mtu_config));
+    }
+    // If upper_bound is None, use Quinn's default MTU discovery (1452 bytes)
+
     transport_config
 }
 
@@ -60,14 +79,14 @@ impl rustls::client::ServerCertVerifier for SkipServerVerification {
     }
 }
 
-fn configure_client() -> Result<ClientConfig, Box<dyn Error>> {
+fn configure_client(mtu_upper_bound: Option<u16>) -> Result<ClientConfig, Box<dyn Error>> {
     let crypto = rustls::ClientConfig::builder()
         .with_safe_defaults()
         .with_custom_certificate_verifier(SkipServerVerification::new())
         .with_no_client_auth();
 
     let mut client_config = ClientConfig::new(Arc::new(crypto));
-    let mut transport_config = enable_mtud_if_supported();
+    let mut transport_config = enable_mtud_if_supported(mtu_upper_bound);
     transport_config.max_idle_timeout(Some(VarInt::from_u32(60_000).into()));
     transport_config.keep_alive_interval(Some(std::time::Duration::from_secs(1)));
     client_config.transport_config(Arc::new(transport_config));
@@ -75,14 +94,30 @@ fn configure_client() -> Result<ClientConfig, Box<dyn Error>> {
     Ok(client_config)
 }
 
+/// Validates that the URL scheme is "quic"
+///
+/// # Arguments
+/// * `url` - URL to validate
+///
+/// # Returns
+/// * `Ok(())` if the scheme is "quic"
+/// * `Err` if the scheme is not "quic"
+fn validate_url_scheme(url: &Url) -> Result<(), Box<dyn Error>> {
+    if url.scheme() != "quic" {
+        return Err("URL scheme must be quic".into());
+    }
+    Ok(())
+}
+
 /// Constructs a QUIC endpoint configured for use a client only.
 ///
 /// ## Args
 ///
-/// - server_certs: list of trusted certificates.
+/// - bind_addr: local address to bind to
+/// - mtu_upper_bound: optional MTU upper bound in bytes
 #[allow(unused)]
-pub fn make_client_endpoint(bind_addr: SocketAddr) -> Result<Endpoint, Box<dyn Error>> {
-    let client_cfg = configure_client()?;
+fn make_client_endpoint(bind_addr: SocketAddr, mtu_upper_bound: Option<u16>) -> Result<Endpoint, Box<dyn Error>> {
+    let client_cfg = configure_client(mtu_upper_bound)?;
     let mut endpoint = Endpoint::client(bind_addr)?;
     endpoint.set_default_client_config(client_cfg);
     Ok(endpoint)
@@ -91,9 +126,14 @@ pub fn make_client_endpoint(bind_addr: SocketAddr) -> Result<Endpoint, Box<dyn E
 #[tokio::main]
 pub async fn run(options: Opt) -> Result<(), Box<dyn Error>> {
     let url = options.url;
-    if url.scheme() != "quic" {
-        return Err("URL scheme must be quic".into());
-    }
+    validate_url_scheme(&url)?;
+
+    // Parse MTU upper bound option
+    let mtu_upper_bound = match &options.mtu_upper_bound {
+        Some(s) if s == "safety" => Some(1200),
+        Some(s) => Some(s.parse::<u16>().map_err(|_| "Invalid MTU value")?),
+        None => None,
+    };
 
     // Currently `url` crate doesn't recognize quic as scheme (see socket_addrs()), so we can set default port using argument. In future if quic default port is added (as 80 or 443, likely), we will fail to connect to proper port. Ideally we should define own scheme. (ex. "qsrs://" abbr of quicssh-rs)
     let sock_list = url
@@ -119,7 +159,7 @@ pub async fn run(options: Opt) -> Result<(), Box<dyn Error>> {
                 SocketAddr::new(V4(Ipv4Addr::UNSPECIFIED), 0)
             }
         }
-    })?;
+    }, mtu_upper_bound)?;
     // connect to server
     let connection = endpoint.connect(remote, sni).unwrap().await.unwrap();
     info!(
@@ -213,32 +253,73 @@ pub async fn run(options: Opt) -> Result<(), Box<dyn Error>> {
 }
 
 #[cfg(windows)]
-fn create_signal_thread() -> impl core::future::Future<Output = ()> {
-    async move {
-        let mut stream = match ctrl_c() {
-            Ok(s) => s,
-            Err(e) => {
-                error!("[client] create signal stream error: {}", e);
-                return;
-            }
-        };
+async fn create_signal_thread() {
+    let mut stream = match ctrl_c() {
+        Ok(s) => s,
+        Err(e) => {
+            error!("[client] create signal stream error: {}", e);
+            return;
+        }
+    };
 
-        stream.recv().await;
-        info!("[client] got signal Ctrl-C");
-    }
+    stream.recv().await;
+    info!("[client] got signal Ctrl-C");
 }
 #[cfg(not(windows))]
-fn create_signal_thread() -> impl core::future::Future<Output = ()> {
-    async move {
-        let mut stream = match signal(SignalKind::hangup()) {
-            Ok(s) => s,
-            Err(e) => {
-                error!("[client] create signal stream error: {}", e);
-                return;
-            }
-        };
+async fn create_signal_thread() {
+    let mut stream = match signal(SignalKind::hangup()) {
+        Ok(s) => s,
+        Err(e) => {
+            error!("[client] create signal stream error: {}", e);
+            return;
+        }
+    };
 
-        stream.recv().await;
-        info!("[client] got signal HUP");
+    stream.recv().await;
+    info!("[client] got signal HUP");
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_validate_url_scheme_valid() {
+        let url = Url::parse("quic://example.com:4433").unwrap();
+        assert!(validate_url_scheme(&url).is_ok());
+    }
+
+    #[test]
+    fn test_validate_url_scheme_invalid() {
+        let url = Url::parse("http://example.com:4433").unwrap();
+        assert!(validate_url_scheme(&url).is_err());
+
+        let url = Url::parse("https://example.com:4433").unwrap();
+        assert!(validate_url_scheme(&url).is_err());
+    }
+
+    #[test]
+    #[cfg(any(windows, target_os = "linux"))]
+    fn test_enable_mtud_if_supported_with_custom_mtu() {
+        // Just verify that the function completes successfully with Some(1200)
+        let _transport_config = enable_mtud_if_supported(Some(1200));
+        // MTU config is applied internally; we can't directly inspect it
+        // but we verify no panic occurs
+    }
+
+    #[test]
+    #[cfg(any(windows, target_os = "linux"))]
+    fn test_enable_mtud_if_supported_with_none() {
+        // Verify that the function completes successfully with None
+        let _transport_config = enable_mtud_if_supported(None);
+        // Default Quinn behavior is used; verify no panic occurs
+    }
+
+    #[test]
+    #[cfg(not(any(windows, target_os = "linux")))]
+    fn test_enable_mtud_if_supported_unsupported_platform() {
+        // On unsupported platforms, the function should return a default config
+        let _transport_config = enable_mtud_if_supported(Some(1200));
+        // Just verify it doesn't panic
     }
 }
