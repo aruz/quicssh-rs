@@ -10,15 +10,38 @@ on:
   pull_request:
 
 env:
-  CRATE_NAME: quicssh-rs
+  CRATE_NAME: quicssh-rs-robust
   GITHUB_TOKEN: ${{ github.token }}
   RUST_BACKTRACE: 1
 
 jobs:
+  test:
+    name: Test and lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+          components: clippy
+
+      - name: Cache cargo & target directories
+        uses: Swatinem/rust-cache@v2
+
+      - name: Run tests
+        run: cargo test --locked
+
+      - name: Run clippy
+        run: cargo clippy --locked -- -D warnings
+
   build:
     name: Compile for ${{ matrix.platform.name }} with Rust ${{ matrix.const.toolchain }}
     runs-on: ${{ matrix.platform.host }}
     permissions: write-all
+    needs: test
     strategy:
       # assert perfect success
       fail-fast: true
@@ -29,7 +52,7 @@ jobs:
           # as_r: true/false whether to act as release (but not release)
           # is_r: true/false whether is release
           # is_r: true/false whether is test
-          - binbase: quicssh-rs
+          - binbase: quicssh-rs-robust
             toolchain: stable
             as_r: ${{ startsWith(github.ref,'refs/tags/v') || startsWith(github.ref, 'refs/tags/test-release') }}
             is_r: ${{ startsWith(github.ref,'refs/tags/v') }}
@@ -49,39 +72,39 @@ jobs:
           - name: Windows-x86_64
             host: windows-latest
             target: x86_64-pc-windows-msvc
-            tarball: quicssh-Windows-x86_64.tar.gz
+            tarball: quicssh-rs-robust-Windows-x86_64.tar.gz
           - name: FreeBSD-x86_64
             host: ubuntu-20.04
             target: x86_64-unknown-freebsd
-            tarball: quicssh-FreeBSD-x86_64.tar.gz
+            tarball: quicssh-rs-robust-FreeBSD-x86_64.tar.gz
           - name: Linux-i686
             host: ubuntu-20.04
             target: i686-unknown-linux-musl
-            tarball: quicssh-Linux-i686-musl.tar.gz
+            tarball: quicssh-rs-robust-Linux-i686-musl.tar.gz
           - name: Linux-x86_64
             host: ubuntu-20.04
             target: x86_64-unknown-linux-musl
-            tarball: quicssh-Linux-x86_64-musl.tar.gz
+            tarball: quicssh-rs-robust-Linux-x86_64-musl.tar.gz
           - name: Linux-arm
             host: ubuntu-20.04
             target: arm-unknown-linux-musleabi
-            tarball: quicssh-Linux-arm-musl.tar.gz
+            tarball: quicssh-rs-robust-Linux-arm-musl.tar.gz
           - name: Linux-armhf
             host: ubuntu-20.04
             target: armv7-unknown-linux-musleabihf
-            tarball: quicssh-Linux-armhf-musl.tar.gz
+            tarball: quicssh-rs-robust-Linux-armhf-musl.tar.gz
           - name: Linux-aarch64
             host: ubuntu-20.04
             target: aarch64-unknown-linux-musl
-            tarball: quicssh-Linux-aarch64-musl.tar.gz
+            tarball: quicssh-rs-robust-Linux-aarch64-musl.tar.gz
           - name: macOS-x86_64
             host: macOS-latest
             target: x86_64-apple-darwin
-            tarball: quicssh-Darwin-x86_64.tar.gz
+            tarball: quicssh-rs-robust-Darwin-x86_64.tar.gz
           - name: macOS-aarch64
             host: macOS-latest
             target: aarch64-apple-darwin
-            tarball: quicssh-Darwin-aarch64.tar.gz
+            tarball: quicssh-rs-robust-Darwin-aarch64.tar.gz
     steps:
       # checkout
       - uses: actions/checkout@v4
@@ -105,7 +128,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: raw+${{ matrix.platform.target }}
-          path: "target/${{matrix.platform.target}}/release/quicssh-rs*"
+          path: "target/${{matrix.platform.target}}/release/quicssh-rs-robust*"
         #if : matrix.const.as_r
 
       # build deb
@@ -160,13 +183,13 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           draft: true
-          files: "quicssh-*"
+          files: "quicssh-rs-robust-*"
         if: matrix.const.is_r && matrix.const.toolchain == 'stable'
   repository:
     name: Publish repository release
     permissions: write-all
     runs-on: ubuntu-latest
-    needs: build
+    needs: [test, build]
     if: startsWith(github.ref,'refs/tags/v')||startsWith(github.ref, 'refs/tags/test-release')
     steps:
       # checkout
@@ -215,7 +238,7 @@ jobs:
     name: Publish crate.io release
     permissions: write-all
     runs-on: ubuntu-latest
-    needs: build
+    needs: [test, build]
     if: startsWith(github.ref,'refs/tags/v')||startsWith(github.ref, 'refs/tags/test-release')
     steps:
       - uses: actions/checkout@v4

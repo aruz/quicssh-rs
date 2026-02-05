@@ -1,19 +1,25 @@
 name: Code Lint
-on: [push]
+on:
+  push:
+  pull_request:
 
 jobs:
-  check:
-    name: Rust project
+  lint:
+    name: Format and style check
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Install latest nightly
-        uses: actions-rs/toolchain@v1
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
         with:
-            toolchain: stable
-            override: true
-            components: rustfmt, clippy
-      - name: Cargo format
+          components: rustfmt, clippy
+
+      - name: Cache cargo & target directories
+        uses: Swatinem/rust-cache@v2
+
+      - name: Check code formatting
         run: cargo fmt --all -- --check
-      - name: Cargo clippy
-        run: cargo clippy --all-targets
+
+      - name: Run clippy (warnings allowed)
+        run: cargo clippy --all-targets --locked
