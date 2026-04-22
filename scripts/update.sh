@@ -10,7 +10,7 @@ common_tmp=""
 binary=""
 trap 'rm -f "${common_tmp:-}"; [[ -n "${binary:-}" ]] && rm -rf "$(dirname "$binary")"' EXIT
 
-self_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" 2>/dev/null && pwd || true)
+self_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]:-}")" 2>/dev/null && pwd || true)
 if [[ -n "$self_dir" && -f "$self_dir/_common.sh" ]]; then
     # shellcheck disable=SC1091
     source "$self_dir/_common.sh"
@@ -37,8 +37,8 @@ if [[ "$current" == "${target#v}" ]]; then
     exit 0
 fi
 
-arch=$(detect_arch)
-binary=$(download_binary "$target" "$arch")
+platform=$(detect_target)
+binary=$(download_binary "$target" "$platform")
 
 install -m 755 "$binary" "$bin_path"
 systemctl restart "$UNIT_NAME"

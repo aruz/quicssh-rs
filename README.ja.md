@@ -49,8 +49,12 @@ curl -fsSL https://raw.githubusercontent.com/aruz/quicssh-rs/master/scripts/upda
 
 - `quicssh-rs-Linux-x86_64-musl.tar.gz`
 - `quicssh-rs-Linux-aarch64-musl.tar.gz`
+- `quicssh-rs-Darwin-aarch64.tar.gz` (Apple Silicon)
+- `quicssh-rs-Darwin-x86_64.tar.gz` (Intel Mac)
 
 各アーカイブには `.sha256` サイドカーファイルが付属しています。
+
+> `install.sh` / `update.sh` は systemd Linux 専用です。macOS ユーザーはアーカイブをダウンロードし、展開して `install -m 755 quicssh-rs /usr/local/bin/` を実行してください。
 
 ### ソースからビルド
 
