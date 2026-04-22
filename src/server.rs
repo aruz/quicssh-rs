@@ -1,5 +1,6 @@
 use clap::Parser;
 use quinn::{crypto, Endpoint, ServerConfig, VarInt};
+use rustls::pki_types::{CertificateDer, PrivateKeyDer};
 
 use log::{debug, error, info};
 use serde::Deserialize;
@@ -36,11 +37,11 @@ pub struct Opt {
 fn configure_server(
     mtu_upper_bound: Option<u16>,
 ) -> Result<(ServerConfig, Vec<u8>), Box<dyn Error>> {
-    let cert = rcgen::generate_simple_self_signed(vec!["localhost".into()]).unwrap();
-    let cert_der = cert.serialize_der().unwrap();
-    let priv_key = cert.serialize_private_key_der();
-    let priv_key = rustls::PrivateKey(priv_key);
-    let cert_chain = vec![rustls::Certificate(cert_der.clone())];
+    let cert = rcgen::generate_simple_self_signed(vec!["localhost".into()])?;
+    let cert_der = cert.cert.der().to_vec();
+    let priv_key = PrivateKeyDer::try_from(cert.key_pair.serialize_der())
+        .map_err(|e| -> Box<dyn Error> { e.into() })?;
+    let cert_chain = vec![CertificateDer::from(cert_der.clone())];
 
     let mut server_config = ServerConfig::with_single_cert(cert_chain, priv_key)?;
     let transport_config = Arc::get_mut(&mut server_config.transport).unwrap();
