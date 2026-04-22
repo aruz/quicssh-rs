@@ -116,7 +116,10 @@ fn validate_url_scheme(url: &Url) -> Result<(), Box<dyn Error>> {
 /// - bind_addr: local address to bind to
 /// - mtu_upper_bound: optional MTU upper bound in bytes
 #[allow(unused)]
-fn make_client_endpoint(bind_addr: SocketAddr, mtu_upper_bound: Option<u16>) -> Result<Endpoint, Box<dyn Error>> {
+fn make_client_endpoint(
+    bind_addr: SocketAddr,
+    mtu_upper_bound: Option<u16>,
+) -> Result<Endpoint, Box<dyn Error>> {
     let client_cfg = configure_client(mtu_upper_bound)?;
     let mut endpoint = Endpoint::client(bind_addr)?;
     endpoint.set_default_client_config(client_cfg);
@@ -149,17 +152,20 @@ pub async fn run(options: Opt) -> Result<(), Box<dyn Error>> {
 
     info!("[client] Connecting to: {} <- {}", remote, sni);
 
-    let endpoint = make_client_endpoint(match options.bind_addr {
-        Some(local) => local,
-        None => {
-            use std::net::{IpAddr::*, Ipv4Addr, Ipv6Addr};
-            if remote.is_ipv6() {
-                SocketAddr::new(V6(Ipv6Addr::UNSPECIFIED), 0)
-            } else {
-                SocketAddr::new(V4(Ipv4Addr::UNSPECIFIED), 0)
+    let endpoint = make_client_endpoint(
+        match options.bind_addr {
+            Some(local) => local,
+            None => {
+                use std::net::{IpAddr::*, Ipv4Addr, Ipv6Addr};
+                if remote.is_ipv6() {
+                    SocketAddr::new(V6(Ipv6Addr::UNSPECIFIED), 0)
+                } else {
+                    SocketAddr::new(V4(Ipv4Addr::UNSPECIFIED), 0)
+                }
             }
-        }
-    }, mtu_upper_bound)?;
+        },
+        mtu_upper_bound,
+    )?;
     // connect to server
     let connection = endpoint.connect(remote, sni).unwrap().await.unwrap();
     info!(
