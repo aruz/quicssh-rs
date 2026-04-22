@@ -18,6 +18,50 @@
 
 ---
 
+## インストール
+
+### systemdサーバー向けクイックインストール (Linux x86_64 / aarch64)
+
+ワンライナー — 最新リリースをダウンロードし、`/usr/local/bin/quicssh-rs` にインストール、強化された systemd ユニットを作成してポート 4433 で起動します:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/aruz/quicssh-rs/master/scripts/install.sh | sudo bash
+```
+
+オプションは `--` の後に渡せます:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/aruz/quicssh-rs/master/scripts/install.sh \
+    | sudo bash -s -- --port 4343 --proxy-to 127.0.0.1:22
+```
+
+対応フラグ: `--version vX.Y.Z`, `--port`, `--listen`, `--proxy-to`。
+
+既存インストールのインプレース更新:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/aruz/quicssh-rs/master/scripts/update.sh | sudo bash
+```
+
+### ビルド済みバイナリ
+
+[Releases](https://github.com/aruz/quicssh-rs/releases/latest)ページから各プラットフォーム用のアーカイブを入手できます:
+
+- `quicssh-rs-Linux-x86_64-musl.tar.gz`
+- `quicssh-rs-Linux-aarch64-musl.tar.gz`
+
+各アーカイブには `.sha256` サイドカーファイルが付属しています。
+
+### ソースからビルド
+
+```bash
+git clone https://github.com/aruz/quicssh-rs.git
+cd quicssh-rs
+cargo build --release
+```
+
+---
+
 ## quicssh-rsについて
 
 > **quicssh-rs**は、クライアントやサーバーにパッチを当てることなく、QUICを使用してSSHサーバーに接続できるQUICプロキシです。
@@ -161,48 +205,6 @@ Options:
                                         MTU upper bound: numeric value (e.g., 1200) or "safety" for RFC-compliant 1200 bytes
   -h, --help                            Print help
   -V, --version                         Print version
-```
-
-## インストール
-
-### systemdサーバー向けクイックインストール (Linux x86_64 / aarch64)
-
-ワンライナー — 最新リリースをダウンロードし、`/usr/local/bin/quicssh-rs` にインストール、強化された systemd ユニットを作成してポート 4433 で起動します:
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/aruz/quicssh-rs/master/scripts/install.sh | sudo bash
-```
-
-オプションは `--` の後に渡せます:
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/aruz/quicssh-rs/master/scripts/install.sh \
-    | sudo bash -s -- --port 4343 --proxy-to 127.0.0.1:22
-```
-
-対応フラグ: `--version vX.Y.Z`, `--port`, `--listen`, `--proxy-to`。
-
-既存インストールのインプレース更新:
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/aruz/quicssh-rs/master/scripts/update.sh | sudo bash
-```
-
-### ビルド済みバイナリ
-
-[Releases](https://github.com/aruz/quicssh-rs/releases/latest)ページから各プラットフォーム用のアーカイブを入手できます:
-
-- `quicssh-rs-Linux-x86_64-musl.tar.gz`
-- `quicssh-rs-Linux-aarch64-musl.tar.gz`
-
-各アーカイブには `.sha256` サイドカーファイルが付属しています。
-
-### ソースからビルド
-
-```bash
-git clone https://github.com/aruz/quicssh-rs.git
-cd quicssh-rs
-cargo build --release
 ```
 
 ## ライセンス
