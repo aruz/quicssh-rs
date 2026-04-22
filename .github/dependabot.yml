@@ -10,11 +10,6 @@ updates:
         update-types:
           - patch
           - minor
-    # toml 1.x may change syntax; park until a dedicated migration PR.
-    ignore:
-      - dependency-name: toml
-        update-types: [version-update:semver-major]
-
   - package-ecosystem: github-actions
     directory: /
     schedule:
