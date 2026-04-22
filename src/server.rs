@@ -32,7 +32,10 @@ pub struct Opt {
 ///
 /// # Arguments
 /// * `mtu_upper_bound` - Optional MTU upper bound in bytes. None uses Quinn's default (1452).
-fn configure_server(mtu_upper_bound: Option<u16>) -> Result<(ServerConfig, Vec<u8>), Box<dyn Error>> {
+#[cfg_attr(not(any(windows, target_os = "linux")), allow(unused_variables))]
+fn configure_server(
+    mtu_upper_bound: Option<u16>,
+) -> Result<(ServerConfig, Vec<u8>), Box<dyn Error>> {
     let cert = rcgen::generate_simple_self_signed(vec!["localhost".into()]).unwrap();
     let cert_der = cert.serialize_der().unwrap();
     let priv_key = cert.serialize_private_key_der();
@@ -61,7 +64,10 @@ fn configure_server(mtu_upper_bound: Option<u16>) -> Result<(ServerConfig, Vec<u
 }
 
 #[allow(unused)]
-fn make_server_endpoint(bind_addr: SocketAddr, mtu_upper_bound: Option<u16>) -> Result<(Endpoint, Vec<u8>), Box<dyn Error>> {
+fn make_server_endpoint(
+    bind_addr: SocketAddr,
+    mtu_upper_bound: Option<u16>,
+) -> Result<(Endpoint, Vec<u8>), Box<dyn Error>> {
     let (server_config, server_cert) = configure_server(mtu_upper_bound)?;
     let endpoint = Endpoint::server(server_config, bind_addr)?;
     Ok((endpoint, server_cert))
@@ -85,10 +91,7 @@ impl ServerConf {
 /// 1. "default" key in TOML conf
 /// 2. --proxy-to option
 /// 3. localhost:22 (fallback)
-fn determine_default_proxy(
-    conf: &ServerConf,
-    proxy_to_option: Option<SocketAddr>,
-) -> SocketAddr {
+fn determine_default_proxy(conf: &ServerConf, proxy_to_option: Option<SocketAddr>) -> SocketAddr {
     match conf.proxy.get("default") {
         Some(sock) => *sock,
         None => proxy_to_option.unwrap_or(SocketAddr::new(Ipv4Addr::LOCALHOST.into(), 22)),
