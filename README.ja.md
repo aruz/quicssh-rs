@@ -1,4 +1,4 @@
-# quicssh-rs-robust
+# quicssh-rs
 
 > **これは [oowl/quicssh-rs](https://github.com/oowl/quicssh-rs) のフォークです。** 本番環境での使用に向けた**安定化と堅牢性の向上**を目的としています。
 
@@ -78,7 +78,7 @@ QUICでプロキシされたSSH接続
 │                 bob                 │             │                wopr                 │
 │ ┌─────────────────────────────────┐ │             │ ┌─────────────────────────────────┐ │
 │ │ssh -o ProxyCommand=             │ │             │ │              sshd               │ │
-│ │ "quicssh-rs-robust client       │ │             │ └─────────────────────────────────┘ │
+│ │ "quicssh-rs client       │ │             │ └─────────────────────────────────┘ │
 │ │  quic://%h:4433" user@wopr      │ │             │                  ▲                  │
 │ └─────────────────────────────────┘ │             │                  │                  │
 │                  │                  │             │                  │                  │
@@ -86,7 +86,7 @@ QUICでプロキシされたSSH接続
 │                  │                  │             │                  │                  │
 │                  ▼                  │             │                  │                  │
 │ ┌─────────────────────────────────┐ │             │ ┌─────────────────────────────────┐ │
-│ │quicssh-rs-robust client         │─┼─quic (udp)─▶│ │      quicssh-rs-robust          │ │
+│ │quicssh-rs client         │─┼─quic (udp)─▶│ │      quicssh-rs          │ │
 │ │                    wopr:4433    │ │             │ │           server                │ │
 │ └─────────────────────────────────┘ │             │ └─────────────────────────────────┘ │
 └─────────────────────────────────────┘             └─────────────────────────────────────┘
@@ -95,10 +95,10 @@ QUICでプロキシされたSSH接続
 ## 使い方
 
 ```console
-$ quicssh-rs-robust -h
+$ quicssh-rs -h
 A simple ssh server based on quic protocol
 
-Usage: quicssh-rs-robust <COMMAND>
+Usage: quicssh-rs <COMMAND>
 
 Commands:
   server  Server
@@ -115,10 +115,10 @@ Options:
 ### クライアント
 
 ```console
-$ quicssh-rs-robust client -h
+$ quicssh-rs client -h
 Client
 
-Usage: quicssh-rs-robust client [OPTIONS] <URL>
+Usage: quicssh-rs client [OPTIONS] <URL>
 
 Arguments:
   <URL>  Server address
@@ -139,7 +139,7 @@ Host test
     HostName test.test
     User root
     Port 22333
-    ProxyCommand /path/to/quicssh-rs-robust client quic://%h:%p
+    ProxyCommand /path/to/quicssh-rs client quic://%h:%p
 
 ╰─$ ssh test
 Last login: Mon May  1 13:32:15 2023 from 127.0.0.1
@@ -148,10 +148,10 @@ Last login: Mon May  1 13:32:15 2023 from 127.0.0.1
 ### サーバー
 
 ```console
-$ quicssh-rs-robust server -h
+$ quicssh-rs server -h
 Server
 
-Usage: quicssh-rs-robust server [OPTIONS]
+Usage: quicssh-rs server [OPTIONS]
 
 Options:
   -l, --listen <LISTEN>                 Address to listen on [default: 0.0.0.0:4433]
@@ -167,19 +167,19 @@ Options:
 
 ### GitHubリリースから
 
-[Releases](https://github.com/retrage/quicssh-rs-robust/releases)ページからプラットフォームに合ったバイナリをダウンロードしてください。
+[Releases](https://github.com/aruz/quicssh-rs/releases)ページからプラットフォームに合ったバイナリをダウンロードしてください。
 
 ### Cargoから
 
 ```bash
-cargo install quicssh-rs-robust
+cargo install quicssh-rs
 ```
 
 ### ソースからビルド
 
 ```bash
-git clone https://github.com/retrage/quicssh-rs-robust.git
-cd quicssh-rs-robust
+git clone https://github.com/aruz/quicssh-rs.git
+cd quicssh-rs
 cargo build --release
 ```
 

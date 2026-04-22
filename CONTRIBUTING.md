@@ -1,6 +1,6 @@
-# Contributing to quicssh-rs-robust
+# Contributing to quicssh-rs
 
-Thank you for your interest in contributing to quicssh-rs-robust!
+Thank you for your interest in contributing to quicssh-rs!
 
 ## About This Fork
 
@@ -15,7 +15,7 @@ If you encounter issues related to:
 - Network stability improvements introduced in this fork
 - Documentation or code quality improvements specific to this fork
 
-**Please open an issue in this repository**: https://github.com/hkatsuma/quicssh-rs/issues
+**Please open an issue in this repository**: https://github.com/aruz/quicssh-rs/issues
 
 ### General quicssh-rs Issues
 
@@ -82,4 +82,4 @@ If you have questions about contributing, feel free to:
 - Review existing issues and pull requests
 - Check the [README.md](README.md) for project overview
 
-Thank you for helping make quicssh-rs-robust more stable and reliable!
+Thank you for helping make quicssh-rs more stable and reliable!

@@ -573,7 +573,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "quicssh-rs-robust"
+name = "quicssh-rs"
 version = "0.1.6"
 dependencies = [
  "clap",
