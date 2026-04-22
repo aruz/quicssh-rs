@@ -39,7 +39,7 @@ fn configure_server(
 ) -> Result<(ServerConfig, Vec<u8>), Box<dyn Error>> {
     let cert = rcgen::generate_simple_self_signed(vec!["localhost".into()])?;
     let cert_der = cert.cert.der().to_vec();
-    let priv_key = PrivateKeyDer::try_from(cert.key_pair.serialize_der())
+    let priv_key = PrivateKeyDer::try_from(cert.signing_key.serialize_der())
         .map_err(|e| -> Box<dyn Error> { e.into() })?;
     let cert_chain = vec![CertificateDer::from(cert_der.clone())];
 

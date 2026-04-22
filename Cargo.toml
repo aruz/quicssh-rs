@@ -23,7 +23,7 @@ tokio = { version = "1.52.1", features = ["full"] }
 url = "2.5.8"
 rustls = { version = "0.23", default-features = false, features = ["ring", "std"] }
 rustls-pemfile = "2.2.0"
-rcgen = "0.13"
+rcgen = "0.14"
 log = { version = "0.4.29", features = ["std", "serde"] }
 log4rs = "1.4.0"
 serde = "1.0.228"
