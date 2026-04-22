@@ -9,14 +9,28 @@ permissions:
 
 jobs:
   build:
-    name: Build ${{ matrix.target }}
-    runs-on: ubuntu-latest
+    name: Build ${{ matrix.suffix }}
+    runs-on: ${{ matrix.runner }}
     strategy:
       fail-fast: false
       matrix:
-        target:
-          - x86_64-unknown-linux-musl
-          - aarch64-unknown-linux-musl
+        include:
+          - target: x86_64-unknown-linux-musl
+            runner: ubuntu-latest
+            suffix: Linux-x86_64-musl
+            method: cross
+          - target: aarch64-unknown-linux-musl
+            runner: ubuntu-latest
+            suffix: Linux-aarch64-musl
+            method: cross
+          - target: aarch64-apple-darwin
+            runner: macos-latest
+            suffix: Darwin-aarch64
+            method: native
+          - target: x86_64-apple-darwin
+            runner: macos-13
+            suffix: Darwin-x86_64
+            method: native
     steps:
       - uses: actions/checkout@v6
 
@@ -24,7 +38,19 @@ jobs:
         with:
           key: ${{ matrix.target }}
 
-      - uses: houseabsolute/actions-rust-cross@v1
+      - name: Install native toolchain
+        if: matrix.method == 'native'
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Build (native)
+        if: matrix.method == 'native'
+        run: cargo build --locked --release --target ${{ matrix.target }}
+
+      - name: Build (cross)
+        if: matrix.method == 'cross'
+        uses: houseabsolute/actions-rust-cross@v1
         with:
           command: build
           target: ${{ matrix.target }}
@@ -33,13 +59,12 @@ jobs:
 
       - name: Package tarball
         run: |
-          arch=$(echo '${{ matrix.target }}' | cut -d- -f1)
-          tarball="quicssh-rs-Linux-${arch}-musl.tar.gz"
+          tarball="quicssh-rs-${{ matrix.suffix }}.tar.gz"
           tar -C target/${{ matrix.target }}/release -czf "$tarball" quicssh-rs
-          sha256sum "$tarball" > "${tarball}.sha256"
+          shasum -a 256 "$tarball" > "${tarball}.sha256"
 
       - uses: softprops/action-gh-release@v3
         with:
           files: |
-            quicssh-rs-Linux-*-musl.tar.gz
-            quicssh-rs-Linux-*-musl.tar.gz.sha256
+            quicssh-rs-${{ matrix.suffix }}.tar.gz
+            quicssh-rs-${{ matrix.suffix }}.tar.gz.sha256

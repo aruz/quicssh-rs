@@ -14,7 +14,7 @@ common_tmp=""
 binary=""
 trap 'rm -f "${common_tmp:-}"; [[ -n "${binary:-}" ]] && rm -rf "$(dirname "$binary")"' EXIT
 
-self_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" 2>/dev/null && pwd || true)
+self_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]:-}")" 2>/dev/null && pwd || true)
 if [[ -n "$self_dir" && -f "$self_dir/_common.sh" ]]; then
     # shellcheck disable=SC1091
     source "$self_dir/_common.sh"
@@ -50,8 +50,8 @@ bin_path="$INSTALL_DIR/$BINARY_NAME"
 [[ ! -e "$bin_path" ]] || die "$bin_path already exists — use update.sh instead"
 [[ ! -e "$UNIT_PATH" ]] || die "$UNIT_PATH already exists — use update.sh or remove it first"
 
-arch=$(detect_arch)
-binary=$(download_binary "$version" "$arch")
+target=$(detect_target)
+binary=$(download_binary "$version" "$target")
 
 install -m 755 "$binary" "$bin_path"
 

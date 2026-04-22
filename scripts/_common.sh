@@ -13,23 +13,28 @@ require_root() {
 }
 
 require_systemd() {
-    [[ -d /run/systemd/system ]] || die "systemd not detected — this script targets modern Linux with systemd"
+    [[ -d /run/systemd/system ]] || die "systemd not detected — install.sh targets modern Linux with systemd"
 }
 
 check_tools() {
     local tool
-    for tool in curl tar install systemctl sha256sum; do
+    for tool in curl tar install shasum; do
         command -v "$tool" >/dev/null 2>&1 || die "required tool not found: $tool"
     done
 }
 
-detect_arch() {
-    local m
+# Map uname output to the release asset suffix, e.g. "Linux-x86_64-musl"
+# or "Darwin-aarch64". Matches the tarball names produced by release.yml.
+detect_target() {
+    local m os
     m=$(uname -m)
-    case "$m" in
-        x86_64|amd64) echo x86_64 ;;
-        aarch64|arm64) echo aarch64 ;;
-        *) die "unsupported architecture: $m (only x86_64 and aarch64 are released)" ;;
+    os=$(uname -s)
+    case "$os-$m" in
+        Linux-x86_64|Linux-amd64) echo "Linux-x86_64-musl" ;;
+        Linux-aarch64|Linux-arm64) echo "Linux-aarch64-musl" ;;
+        Darwin-arm64|Darwin-aarch64) echo "Darwin-aarch64" ;;
+        Darwin-x86_64) echo "Darwin-x86_64" ;;
+        *) die "unsupported platform: $os-$m" ;;
     esac
 }
 
@@ -45,17 +50,20 @@ normalize_version() { [[ "$1" == v* ]] && echo "$1" || echo "v$1"; }
 
 # Resolve version string. Empty arg → latest tag from GitHub API.
 # Accepts both "0.1.6" and "v0.1.6"; always returns "vX.Y.Z".
+# Buffers curl output before parsing so pipefail + SIGPIPE from grep -m1
+# cannot race (observed curl exit 23 when grep closed the pipe early).
 resolve_version() {
     local arg=${1:-}
     if [[ -n "$arg" ]]; then
         normalize_version "$arg"
         return
     fi
-    local tag
-    tag=$(gh_curl "https://api.github.com/repos/$REPO/releases/latest" \
-        | grep -m1 '"tag_name"' \
-        | sed -E 's/.*"tag_name"[[:space:]]*:[[:space:]]*"([^"]+)".*/\1/') \
+    local body
+    body=$(gh_curl "https://api.github.com/repos/$REPO/releases/latest") \
         || die "failed to query latest release from $REPO"
+    local tag
+    tag=$(printf '%s\n' "$body" | grep -m1 '"tag_name"' \
+        | sed -E 's/.*"tag_name"[[:space:]]*:[[:space:]]*"([^"]+)".*/\1/')
     [[ -n "$tag" ]] || die "no releases found in $REPO"
     echo "$tag"
 }
@@ -63,8 +71,8 @@ resolve_version() {
 # Download and extract the release tarball. Empty `ver` uses the
 # /releases/latest/download/ redirect, so no API call and no rate limit.
 download_binary() {
-    local ver=$1 arch=$2
-    local tarball="${BINARY_NAME}-Linux-${arch}-musl.tar.gz"
+    local ver=$1 target=$2
+    local tarball="${BINARY_NAME}-${target}.tar.gz"
     local base="https://github.com/$REPO/releases"
     local url
     if [[ -z "$ver" ]]; then
@@ -78,7 +86,7 @@ download_binary() {
     curl -fL --retry 3 -o "$tmp/$tarball" "$url" \
         || die "failed to download $url"
     if curl -fL -s -o "$tmp/$tarball.sha256" "$url.sha256"; then
-        (cd "$tmp" && sha256sum -c "$tarball.sha256" >/dev/null) \
+        (cd "$tmp" && shasum -a 256 -c "$tarball.sha256" >/dev/null) \
             || die "sha256 mismatch for $tarball"
     fi
     tar -C "$tmp" -xzf "$tmp/$tarball" || die "failed to extract $tarball"
