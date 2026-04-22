@@ -18,12 +18,12 @@ path = "src/main.rs"
 
 [dependencies]
 clap = { version = "4.6.1", features = ["derive"] }
-quinn = "0.10.2"
+quinn = { version = "0.11", features = ["rustls-ring", "runtime-tokio"], default-features = false }
 tokio = { version = "1.52.1", features = ["full"] }
 url = "2.5.8"
-rustls = { version = "0.21.12", features = ["quic","dangerous_configuration"] }
+rustls = { version = "0.23", default-features = false, features = ["ring", "std"] }
 rustls-pemfile = "2.2.0"
-rcgen = "0.12.1"
+rcgen = "0.13"
 log = { version = "0.4.29", features = ["std", "serde"] }
 log4rs = "1.4.0"
 serde = "1.0.228"

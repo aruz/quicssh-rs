@@ -10,16 +10,8 @@ updates:
         update-types:
           - patch
           - minor
-    # Majors on these require coordinated migration (quinn/rustls/rcgen are
-    # tightly coupled; toml 1.x may change syntax). Unblock by deleting the
-    # relevant entry when the migration is planned.
+    # toml 1.x may change syntax; park until a dedicated migration PR.
     ignore:
-      - dependency-name: quinn
-        update-types: [version-update:semver-major]
-      - dependency-name: rustls
-        update-types: [version-update:semver-major]
-      - dependency-name: rcgen
-        update-types: [version-update:semver-major]
       - dependency-name: toml
         update-types: [version-update:semver-major]
 
