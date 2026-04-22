@@ -18,6 +18,50 @@ This fork aims to stabilize quicssh-rs for reliable SSH-over-QUIC connections in
 
 ---
 
+## Installation
+
+### Quick server install (systemd Linux x86_64 / aarch64)
+
+One-liner — downloads the latest release, installs `/usr/local/bin/quicssh-rs`, writes a hardened systemd unit, and starts it on port 4433:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/aruz/quicssh-rs/master/scripts/install.sh | sudo bash
+```
+
+Flags are forwarded after `--`:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/aruz/quicssh-rs/master/scripts/install.sh \
+    | sudo bash -s -- --port 4343 --proxy-to 127.0.0.1:22
+```
+
+Supported flags: `--version vX.Y.Z`, `--port`, `--listen`, `--proxy-to`.
+
+In-place upgrade on an already-deployed host:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/aruz/quicssh-rs/master/scripts/update.sh | sudo bash
+```
+
+### Prebuilt binaries
+
+Grab the archive for your platform from [Releases](https://github.com/aruz/quicssh-rs/releases/latest):
+
+- `quicssh-rs-Linux-x86_64-musl.tar.gz`
+- `quicssh-rs-Linux-aarch64-musl.tar.gz`
+
+Each archive ships with a matching `.sha256` sidecar.
+
+### Build from source
+
+```bash
+git clone https://github.com/aruz/quicssh-rs.git
+cd quicssh-rs
+cargo build --release
+```
+
+---
+
 ## About quicssh-rs
 
 > :smile: **quicssh-rs** is a QUIC proxy that allows to use QUIC to connect to an SSH server without needing to patch the client or the server.
@@ -90,48 +134,6 @@ SSH Connection proxified with QUIC
 │ │                    wopr:4433    │ │             │ │      server       │ │
 │ └─────────────────────────────────┘ │             │ └───────────────────┘ │
 └─────────────────────────────────────┘             └───────────────────────┘
-```
-
-## Installation
-
-### Quick server install (systemd Linux x86_64 / aarch64)
-
-One-liner — downloads the latest release, installs `/usr/local/bin/quicssh-rs`, writes a hardened systemd unit, and starts it on port 4433:
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/aruz/quicssh-rs/master/scripts/install.sh | sudo bash
-```
-
-Flags are forwarded after `--`:
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/aruz/quicssh-rs/master/scripts/install.sh \
-    | sudo bash -s -- --port 4343 --proxy-to 127.0.0.1:22
-```
-
-Supported flags: `--version vX.Y.Z`, `--port`, `--listen`, `--proxy-to`.
-
-In-place upgrade on an already-deployed host:
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/aruz/quicssh-rs/master/scripts/update.sh | sudo bash
-```
-
-### Prebuilt binaries
-
-Grab the archive for your platform from [Releases](https://github.com/aruz/quicssh-rs/releases/latest):
-
-- `quicssh-rs-Linux-x86_64-musl.tar.gz`
-- `quicssh-rs-Linux-aarch64-musl.tar.gz`
-
-Each archive ships with a matching `.sha256` sidecar.
-
-### Build from source
-
-```bash
-git clone https://github.com/aruz/quicssh-rs.git
-cd quicssh-rs
-cargo build --release
 ```
 
 ## Usage
