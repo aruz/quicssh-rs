@@ -2,11 +2,10 @@ use std::process::Command;
 
 #[test]
 fn cli_help_succeeds() {
-    // Use the built binary from cargo to ensure the CLI is runnable end-to-end.
-    let output = Command::new(env!("CARGO_BIN_EXE_quicssh-rs-robust"))
+    let output = Command::new(env!("CARGO_BIN_EXE_quicssh-rs"))
         .arg("--help")
         .output()
-        .expect("failed to spawn quicssh-rs-robust");
+        .expect("failed to spawn quicssh-rs");
 
     assert!(
         output.status.success(),
@@ -17,7 +16,7 @@ fn cli_help_succeeds() {
 
     let stdout = String::from_utf8_lossy(&output.stdout);
     assert!(
-        stdout.contains("Usage: quicssh-rs-robust"),
+        stdout.contains("Usage: quicssh-rs"),
         "unexpected help output: {}",
         stdout
     );

@@ -1,4 +1,4 @@
-# quicssh-rs-robust
+# quicssh-rs
 
 > **This is a fork of [oowl/quicssh-rs](https://github.com/oowl/quicssh-rs)** focused on **stabilization and robustness** for production use.
 
@@ -78,7 +78,7 @@ SSH Connection proxified with QUIC
 │                 bob                 │             │         wopr          │
 │ ┌─────────────────────────────────┐ │             │ ┌───────────────────┐ │
 │ │ssh -o ProxyCommand=             │ │             │ │       sshd        │ │
-│ │ "quicssh-rs-robust client       │ │             │ └───────────────────┘ │
+│ │ "quicssh-rs client       │ │             │ └───────────────────┘ │
 │ │  quic://%h:4433" user@wopr      │ │             │          ▲            │
 │ └─────────────────────────────────┘ │             │          │            │
 │                  │                  │             │          │            │
@@ -86,7 +86,7 @@ SSH Connection proxified with QUIC
 │                  │                  │             │          │            │
 │                  ▼                  │             │          │            │
 │ ┌─────────────────────────────────┐ │             │ ┌───────────────────┐ │
-│ │quicssh-rs-robust client         │─┼─quic (udp)─▶│ │quicssh-rs-robust  │ │
+│ │quicssh-rs client         │─┼─quic (udp)─▶│ │quicssh-rs  │ │
 │ │                    wopr:4433    │ │             │ │      server       │ │
 │ └─────────────────────────────────┘ │             │ └───────────────────┘ │
 └─────────────────────────────────────┘             └───────────────────────┘
@@ -95,10 +95,10 @@ SSH Connection proxified with QUIC
 ## Usage
 
 ```console
-$ quicssh-rs-robust -h
+$ quicssh-rs -h
 A simple ssh server based on quic protocol
 
-Usage: quicssh-rs-robust <COMMAND>
+Usage: quicssh-rs <COMMAND>
 
 Commands:
   server  Server
@@ -115,10 +115,10 @@ Options:
 ### Client
 
 ```console
-$ quicssh-rs-robust client -h
+$ quicssh-rs client -h
 Client
 
-Usage: quicssh-rs-robust client [OPTIONS] <URL>
+Usage: quicssh-rs client [OPTIONS] <URL>
 
 Arguments:
   <URL>  Server address
@@ -139,7 +139,7 @@ Host test
     HostName test.test
     User root
     Port 22333
-    ProxyCommand /path/to/quicssh-rs-robust client quic://%h:%p
+    ProxyCommand /path/to/quicssh-rs client quic://%h:%p
 
 ╰─$ ssh test
 Last login: Mon May  1 13:32:15 2023 from 127.0.0.1
@@ -148,10 +148,10 @@ Last login: Mon May  1 13:32:15 2023 from 127.0.0.1
 ### Server
 
 ```console
-$ quicssh-rs-robust server -h
+$ quicssh-rs server -h
 Server
 
-Usage: quicssh-rs-robust server [OPTIONS]
+Usage: quicssh-rs server [OPTIONS]
 
 Options:
   -l, --listen <LISTEN>                 Address to listen on [default: 0.0.0.0:4433]
