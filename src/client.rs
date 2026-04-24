@@ -219,10 +219,14 @@ pub async fn run(options: Opt) -> Result<(), Box<dyn Error>> {
 
         loop {
             match recv.read(&mut buf).await {
-                // Return value of `Ok(0)` signifies that the remote has
-                // closed
+                // Peer finished its send stream; flush and exit so
+                // `select!` can tear the client down instead of spinning.
                 Ok(None) => {
-                    continue;
+                    debug!("[client] quic stream finished by peer");
+                    if let Err(e) = writer.flush().await {
+                        debug!("[client] stdout flush on exit: {}", e);
+                    }
+                    return;
                 }
                 Ok(Some(n)) => {
                     debug!("[client] recv data from quic server {} bytes", n);
@@ -254,11 +258,14 @@ pub async fn run(options: Opt) -> Result<(), Box<dyn Error>> {
 
         loop {
             match reader.read(&mut buf).await {
-                // Return value of `Ok(0)` signifies that the remote has
-                // closed
                 Ok(n) => {
+                    // stdin EOF: half-close the send stream so the peer drains.
                     if n == 0 {
-                        continue;
+                        debug!("[client] stdin EOF, finishing quic send stream");
+                        if let Err(e) = send.finish() {
+                            debug!("[client] send.finish on exit: {}", e);
+                        }
+                        return;
                     }
                     debug!("[client] recv data from stdin {} bytes", n);
                     // Copy the data back to socket
@@ -281,11 +288,15 @@ pub async fn run(options: Opt) -> Result<(), Box<dyn Error>> {
 
     let signal_thread = create_signal_thread();
 
-    tokio::select! {
-        _ = recv_thread => (),
-        _ = write_thread => (),
-        _ = signal_thread => connection.close(0u32.into(), b"signal HUP"),
-    }
+    let close_reason: &[u8] = tokio::select! {
+        _ = recv_thread => b"peer stream finished",
+        _ = write_thread => b"stdin eof",
+        _ = signal_thread => b"signal",
+    };
+
+    connection.close(0u32.into(), close_reason);
+    // Bounded wait: let the driver flush CONNECTION_CLOSE without stalling exit.
+    let _ = tokio::time::timeout(std::time::Duration::from_millis(100), endpoint.wait_idle()).await;
 
     info!("[client] exit client");
 
