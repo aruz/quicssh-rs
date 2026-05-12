@@ -19,17 +19,9 @@ jobs:
             runner: ubuntu-latest
             suffix: Linux-x86_64-musl
             method: cross
-          - target: aarch64-unknown-linux-musl
-            runner: ubuntu-latest
-            suffix: Linux-aarch64-musl
-            method: cross
           - target: aarch64-apple-darwin
             runner: macos-latest
             suffix: Darwin-aarch64
-            method: native
-          - target: x86_64-apple-darwin
-            runner: macos-13
-            suffix: Darwin-x86_64
             method: native
     steps:
       - uses: actions/checkout@v6

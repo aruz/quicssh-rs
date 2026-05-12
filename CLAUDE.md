@@ -195,10 +195,10 @@ Single job on `ubuntu-latest`:
 
 ### [release.yml](.github/workflows/release.yml) — on tags `v*`
 Build matrix with two targets:
-- `x86_64-unknown-linux-musl`
-- `aarch64-unknown-linux-musl`
+- `x86_64-unknown-linux-musl` (cross-built on `ubuntu-latest`)
+- `aarch64-apple-darwin` (native on `macos-latest`)
 
-Each target produces a `quicssh-rs-Linux-<arch>-musl.tar.gz` + `.sha256` sidecar, uploaded to the GitHub Release via `softprops/action-gh-release`.
+Each target produces a `quicssh-rs-<suffix>.tar.gz` + `.sha256` sidecar, uploaded to the GitHub Release via `softprops/action-gh-release`.
 
 ### Release process
 1. Bump `version` in `Cargo.toml`, commit.
@@ -206,7 +206,7 @@ Each target produces a `quicssh-rs-Linux-<arch>-musl.tar.gz` + `.sha256` sidecar
 
 ### Binary distribution
 
-- **GitHub Releases**: tarball per arch (`quicssh-rs-Linux-x86_64-musl.tar.gz`, `quicssh-rs-Linux-aarch64-musl.tar.gz`).
+- **GitHub Releases**: tarball per arch (`quicssh-rs-Linux-x86_64-musl.tar.gz`, `quicssh-rs-Darwin-aarch64.tar.gz`).
 - **Install script** ([scripts/install.sh](scripts/install.sh)): `curl -fsSL https://raw.githubusercontent.com/aruz/quicssh-rs/master/scripts/install.sh | sudo bash` — downloads the latest release, installs `/usr/local/bin/quicssh-rs`, writes a hardened systemd unit, and enables it.
 - **Update script** ([scripts/update.sh](scripts/update.sh)): in-place upgrade to latest (or `update.sh vX.Y.Z`).
 - **Manual build**: `cargo build --release`.
