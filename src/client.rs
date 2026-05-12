@@ -4,7 +4,6 @@ use clap::Parser;
 use quinn::{ClientConfig, Endpoint, VarInt};
 use rustls::pki_types::{CertificateDer, ServerName, UnixTime};
 use std::{error::Error, net::SocketAddr, sync::Arc};
-use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
 #[cfg(not(windows))]
 use tokio::signal::unix::{signal, SignalKind};
@@ -208,89 +207,28 @@ pub async fn run(options: Opt) -> Result<(), Box<dyn Error>> {
         sni
     );
 
-    let (mut send, mut recv) = connection
+    let (send, recv) = connection
         .open_bi()
         .await
         .map_err(|e| format!("failed to open stream: {}", e))?;
 
-    let recv_thread = async move {
-        let mut buf = vec![0; 2048];
-        let mut writer = tokio::io::BufWriter::new(tokio::io::stdout());
-
-        loop {
-            match recv.read(&mut buf).await {
-                // Peer finished its send stream; flush and exit so
-                // `select!` can tear the client down instead of spinning.
-                Ok(None) => {
-                    debug!("[client] quic stream finished by peer");
-                    if let Err(e) = writer.flush().await {
-                        debug!("[client] stdout flush on exit: {}", e);
-                    }
-                    return;
-                }
-                Ok(Some(n)) => {
-                    debug!("[client] recv data from quic server {} bytes", n);
-                    // Copy the data back to socket
-                    match writer.write_all(&buf[..n]).await {
-                        Ok(_) => (),
-                        Err(e) => {
-                            error!("[client] write to stdout error: {}", e);
-                            return;
-                        }
-                    }
-                }
-                Err(err) => {
-                    // Unexpected socket error. There isn't much we can do
-                    // here so just stop processing.
-                    error!("[client] recv data from quic server error: {}", err);
-                    return;
-                }
-            }
-            if writer.flush().await.is_err() {
-                error!("[client] recv data flush stdout error");
-            }
-        }
-    };
-
-    let write_thread = async move {
-        let mut buf = [0; 2048];
-        let mut reader = tokio::io::BufReader::new(tokio::io::stdin());
-
-        loop {
-            match reader.read(&mut buf).await {
-                Ok(n) => {
-                    // stdin EOF: half-close the send stream so the peer drains.
-                    if n == 0 {
-                        debug!("[client] stdin EOF, finishing quic send stream");
-                        if let Err(e) = send.finish() {
-                            debug!("[client] send.finish on exit: {}", e);
-                        }
-                        return;
-                    }
-                    debug!("[client] recv data from stdin {} bytes", n);
-                    // Copy the data back to socket
-                    if send.write_all(&buf[..n]).await.is_err() {
-                        // Unexpected socket error. There isn't much we can
-                        // do here so just stop processing.
-                        info!("[client] send data to quic server error");
-                        return;
-                    }
-                }
-                Err(err) => {
-                    // Unexpected socket error. There isn't much we can do
-                    // here so just stop processing.
-                    info!("[client] recv data from stdin error: {}", err);
-                    return;
-                }
-            }
-        }
-    };
-
+    let mut stdio = tokio::io::join(tokio::io::stdin(), tokio::io::stdout());
+    let mut quic = tokio::io::join(recv, send);
     let signal_thread = create_signal_thread();
 
     let close_reason: &[u8] = tokio::select! {
-        _ = recv_thread => b"peer stream finished",
-        _ = write_thread => b"stdin eof",
+        result = tokio::io::copy_bidirectional(&mut stdio, &mut quic) => {
+            match result {
+                Ok((up, down)) => {
+                    debug!("[client] bridge closed; up={}B down={}B", up, down);
+                    b"bridge closed"
+                }
+                Err(e) => {
+                    warn!("[client] bridge error: {}", e);
+                    b"bridge error"
+                }
+            }
+        }
         _ = signal_thread => b"signal",
     };
 
