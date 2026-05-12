@@ -48,9 +48,7 @@ curl -fsSL https://raw.githubusercontent.com/aruz/quicssh-rs/master/scripts/upda
 [Releases](https://github.com/aruz/quicssh-rs/releases/latest)ページから各プラットフォーム用のアーカイブを入手できます:
 
 - `quicssh-rs-Linux-x86_64-musl.tar.gz`
-- `quicssh-rs-Linux-aarch64-musl.tar.gz`
 - `quicssh-rs-Darwin-aarch64.tar.gz` (Apple Silicon)
-- `quicssh-rs-Darwin-x86_64.tar.gz` (Intel Mac)
 
 各アーカイブには `.sha256` サイドカーファイルが付属しています。
 

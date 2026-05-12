@@ -31,9 +31,7 @@ detect_target() {
     os=$(uname -s)
     case "$os-$m" in
         Linux-x86_64|Linux-amd64) echo "Linux-x86_64-musl" ;;
-        Linux-aarch64|Linux-arm64) echo "Linux-aarch64-musl" ;;
         Darwin-arm64|Darwin-aarch64) echo "Darwin-aarch64" ;;
-        Darwin-x86_64) echo "Darwin-x86_64" ;;
         *) die "unsupported platform: $os-$m" ;;
     esac
 }
