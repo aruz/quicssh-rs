@@ -24,7 +24,7 @@ jobs:
             suffix: Darwin-aarch64
             method: native
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - uses: Swatinem/rust-cache@v2
         with:
